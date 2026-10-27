@@ -2,7 +2,7 @@
 
 A small Python program that simulates how a database decides the order in which transactions run, using Strict Two-Phase Locking (Strict 2PL).
 
-I built it for the Databases course at UCS (Universidade de Caxias do Sul) and later rewrote it in English.
+This started as an assignment for the Databases course at UCS (Universidade de Caxias do Sul), written in Portuguese. This repository is an English port of that project, which is why the commit history is short and recent.
 
 ![demo](docs/demo.gif)
 
