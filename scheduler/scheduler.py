@@ -16,16 +16,28 @@ class Scheduler:
         self.table = LockTable()
         self.undo: dict[int, list[tuple[str, int]]] = {}    # tid -> (item, old value), in write order
         self.log: list[str] = []                             # step-by-step output (locks, waits, values)
+        self.steps: list[dict] = []                          # snapshot of each step, for --table
 
     def run(self):
         """Main loop: every operation of the initial history goes through the same steps."""
         while self.initial:
             op = self.initial.popleft()
             self.log.append(f"\n>> {op}")
+            start = len(self.log)
 
             self.process(op)          # 1. run the incoming operation (or make it wait)
             self.wake_up()            # 2. move whoever was waiting, if possible
             self.check_deadlock()     # 3. if stuck in a cycle, abort the victim
+
+            self.steps.append({
+                "op": str(op),
+                "events": [line.strip() for line in self.log[start:]],
+                "locks": str(self.table),
+                "waiting": ", ".join(
+                    f"T{tid}: {format_history(ops)}" for tid, ops in self.waiting.items()
+                ) or "-",
+                "final": format_history(self.final),
+            })
 
             self.log.append(f"   locks: {self.table}")
             self.log.append(f"   final: {format_history(self.final)}")
