@@ -13,7 +13,7 @@ USAGE = """Usage:
 
 
 def read_input(argument):
-    """Accepts the history straight from the terminal or the path to a .txt file."""
+    # accepts the history itself or a path to a file with it
     path = Path(argument)
     if path.is_file():
         return path.read_text()
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     if as_table:
         print()
         print(format_table(scheduler.steps))
-        # end-of-run warnings (stuck transactions, locks still held) apply here too
+        # still show the end-of-run warnings
         for line in scheduler.log:
             if line.startswith("\n!!"):
                 print(line)

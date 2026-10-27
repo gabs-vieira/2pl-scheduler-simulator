@@ -1,26 +1,16 @@
-"""Step-by-step output as a table (--table option of main.py).
-
-It only formats what the Scheduler already stored in `steps`; the scheduling
-logic does not depend on this file. Each step becomes one or more rows:
-
-    arrives   what happened                  locks                   waiting     final
-    w1(y)     w1(y) waits: blocked by T2     x: S ['T1', 'T2'], ...  T1: w1(y)   r1(x) w2(y) r2(x)
-"""
-
 COLUMNS = ["arrives", "what happened", "locks", "waiting", "final"]
 
 
 def build_rows(steps):
-    """One row per event; locks, waiting and final only on the step's last row (how it ended)."""
+    # one row per event; the state columns only go on the last row of each step
     blocks = []
     for step in steps:
         events = step["events"] or ["(nothing)"]
         block = []
         for i, event in enumerate(events):
-            first = i == 0
             last = i == len(events) - 1
             block.append([
-                step["op"] if first else "",
+                step["op"] if i == 0 else "",
                 event,
                 step["locks"] if last else "",
                 step["waiting"] if last else "",
@@ -31,18 +21,17 @@ def build_rows(steps):
 
 
 def format_table(steps):
-    """Text for the whole table, with aligned columns and a line between steps."""
     blocks = build_rows(steps)
 
     widths = [len(name) for name in COLUMNS]
     for block in blocks:
         for row in block:
-            widths = [max(current, len(cell)) for current, cell in zip(widths, row)]
+            widths = [max(w, len(cell)) for w, cell in zip(widths, row)]
 
     def join(cells):
-        return " │ ".join(cell.ljust(width) for cell, width in zip(cells, widths)).rstrip()
+        return " │ ".join(cell.ljust(w) for cell, w in zip(cells, widths)).rstrip()
 
-    separator = "─┼─".join("─" * width for width in widths)
+    separator = "─┼─".join("─" * w for w in widths)
 
     output = [join(COLUMNS), separator]
     for block in blocks:

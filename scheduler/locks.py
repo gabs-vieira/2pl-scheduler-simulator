@@ -1,17 +1,15 @@
-"""Lock table: shared (S) and exclusive (X) locks per data item."""
-
 from dataclasses import dataclass, field
 
 
 @dataclass
 class Lock:
-    mode: str                                  # "S" or "X"
+    mode: str  # "S" or "X"
     owners: set[int] = field(default_factory=set)
 
 
 class LockTable:
     def __init__(self):
-        self.locks: dict[str, Lock] = {}       # item -> Lock
+        self.locks: dict[str, Lock] = {}
 
     def __str__(self):
         if not self.locks:
@@ -22,23 +20,19 @@ class LockTable:
         )
 
     def blockers(self, tid, kind, item):
-        """Transactions that keep tid from getting the lock. Empty set = can grant."""
+        """Who keeps tid from getting the lock. Empty set means it can be granted."""
         lock = self.locks.get(item)
         if lock is None:
             return set()
 
-        # a transaction never blocks itself
         others = lock.owners - {tid}
-
         if kind == "r":
-            # S is compatible with S; only an X held by someone else blocks
             return others if lock.mode == "X" else set()
-
-        # a write needs X: any other owner blocks (this already covers the upgrade)
+        # for a write any other owner blocks, which also covers the S -> X upgrade
         return others
 
     def grant(self, tid, kind, item):
-        """Grants the lock. Only call it when blockers() is empty. Returns what happened, for display."""
+        """Assumes blockers() is empty. Returns the lock event to print, or None."""
         lock = self.locks.get(item)
 
         if lock is None:
@@ -47,18 +41,16 @@ class LockTable:
             return f"l{mode.lower()}{tid}({item})"
 
         if tid in lock.owners and (lock.mode == "X" or kind == "r"):
-            return None  # already holds a strong enough lock
+            return None
 
         if kind == "r":
             lock.owners.add(tid)
             return f"ls{tid}({item})"
 
-        # tid is the only S owner and wants to write
         lock.mode = "X"
         return f"lx{tid}({item}) [upgrade]"
 
     def release_all(self, tid):
-        """Releases every lock held by tid (Strict 2PL: only called on commit/abort)."""
         released = []
         for item, lock in list(self.locks.items()):
             if tid in lock.owners:
